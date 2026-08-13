@@ -20,6 +20,14 @@ BALANCE_WEIGHT_FIELD_IMPACT = 5  # w6
 ALERT_MIN_PROFIT_GAP = 30_000
 ALERT_MIN_TIME_GAP_MIN = 30
 
+# --- RAG 환각 방지 ---
+RAG_MIN_HITS = 1
+RAG_MIN_SIMILARITY = 0.5
+
+# --- ONB-01-05 손익분기 데모 산식 (실제 통계 기반 아님, 설명 가능한 단순 가정치) ---
+DEMO_DAILY_KM_ASSUMPTION = 300    # 하루 평균 주행 거리 가정 (km)
+DEMO_DAILY_HOURS_ASSUMPTION = 10  # 하루 평균 가동 시간 가정 (h)
+
 BANNED_PHRASES = ["최적", "완벽", "실시간"]
 CLOSED_QUESTION_RULE = (
     "모든 발화는 예/아니오 또는 번호로 답할 수 있는 닫힌 질문으로 끝나야 한다. "
