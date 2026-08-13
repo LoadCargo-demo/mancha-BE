@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_model: str = "gemini-3.5-flash"
     cancel_threshold: float = 0.3
+    rebuild_profit_threshold: int = 30000
+    rebuild_return_threshold_min: int = 30
 
     database_url: str = "sqlite:///./loadcargo.db"
 
