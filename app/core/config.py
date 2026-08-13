@@ -7,6 +7,7 @@ class Settings(BaseSettings):
 
     gemini_api_key: str = ""
     gemini_model: str = "gemini-3.5-flash"
+    cancel_threshold: float = 0.3
 
     database_url: str = "sqlite:///./loadcargo.db"
 
