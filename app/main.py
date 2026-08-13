@@ -10,6 +10,7 @@ from app.api.routes import (
     registration,
     retrospective,
     risk,
+    voice,
 )
 
 app = FastAPI(
@@ -33,6 +34,7 @@ app.include_router(briefing.router, prefix="/api")
 app.include_router(qna.router, prefix="/api")
 app.include_router(driving.router, prefix="/api")
 app.include_router(retrospective.router, prefix="/api")
+app.include_router(voice.router, prefix="/api")
 
 @app.get("/")
 def root():
