@@ -126,7 +126,7 @@ def _risk_explanation_fallback(
     if is_excluded:
         parts.append("취소 확률이 기준치를 초과해 자동 제외했습니다.")
     elif backup_id:
-        parts.append(f"일정 안정성을 위해 {backup_id} 오더를 백업으로 확보했습니다.")
+        parts.append("일정 안정성을 위해 백업 오더를 확보했습니다.")
     return " ".join(parts)
 
 
@@ -161,10 +161,12 @@ async def _generate_risk_explanation(
         f"time_pattern_risk: {time_pattern_label}\n"
         f"success_probability: {success_prob}\n"
         f"is_auto_excluded: {is_excluded}\n"
-        f"backup_order_id: {backup_id}\n"
+        f"backup_secured: {backup_id is not None}\n"
         "</computed_result>\n\n"
         "<task>computed_result의 최종 결과 전체를 근거로, 왜 이런 리스크 평가가 나왔는지 설명하세요. "
-        "time_pattern_risk 같은 개별 보조지표의 판단 이유가 아니라, 종합 결과를 설명하세요.</task>\n\n"
+        "time_pattern_risk 같은 개별 보조지표의 판단 이유가 아니라, 종합 결과를 설명하세요. "
+        "backup_secured가 true면 '백업 오더를 확보했다'고만 말하고, 오더 ID나 필드명 같은 내부 값은 "
+        "절대 그대로 언급하지 마세요.</task>\n\n"
         "<constraints>\n"
         "- computed_result에 없는 사실이나 수치를 지어내지 마세요.\n"
         "- 한 문장 또는 최대 두 문장으로 작성하세요.\n"
