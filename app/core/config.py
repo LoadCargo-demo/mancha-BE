@@ -1,0 +1,11 @@
+"""환경 설정. .env 값을 로드해 앱 전역에서 사용한다."""
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    database_url: str = "sqlite:///./loadcargo.db"
+
+
+settings = Settings()
