@@ -4,9 +4,25 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.services.mock_data import MOCK_FIELD_WAIT_DATA
+from fastapi import Query
+
+from app.services.mock_data import DRIVER_ID, MOCK_FIELD_WAIT_DATA
 
 _STORE: dict[str, dict[str, Any]] = {}
+
+
+def resolve_session_key(
+    driver_id: str | None = Query(default=None),
+    session_id: str | None = Query(
+        default=None, description="프론트에서 기기/탭별로 발급하는 고유 세션 ID"
+    ),
+) -> str:
+    """세션 저장소 키를 결정한다.
+
+    session_id가 있으면 그걸 우선 쓴다 (기기/탭별 격리). 없으면 driver_id,
+    둘 다 없으면 데모 기본 페르소나(DRIVER_ID)로 묶인다.
+    """
+    return session_id or driver_id or DRIVER_ID
 
 
 def get(driver_id: str) -> dict[str, Any]:

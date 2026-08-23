@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.agents.monitor import receive_event, should_trigger_rebuild
 from app.agents.rebuilder import rebuild
 from app.models.event import MockEvent, RebuildRequest
-from app.services.mock_data import DRIVER_CONSTRAINTS, DRIVER_ID
-from app.services.session_store import get, set_value
+from app.services.mock_data import DRIVER_CONSTRAINTS
+from app.services.session_store import get, resolve_session_key, set_value
 
 router = APIRouter(prefix="/driving", tags=["driving"])
 
 
 @router.get("/status", summary="현재 진행 상태 (완료구간/다음행동/공차/복귀예정)")
-def get_driving_status(driver_id: str = DRIVER_ID):
+def get_driving_status(driver_id: str = Depends(resolve_session_key)):
     session = get(driver_id)
     package = session.get("confirmed_package")
     if not package:
@@ -23,7 +23,7 @@ def get_driving_status(driver_id: str = DRIVER_ID):
 
 
 @router.post("/event", summary="이벤트 주입(Mock) -> 재조립 제안")
-async def submit_event(event: MockEvent, driver_id: str = DRIVER_ID):
+async def submit_event(event: MockEvent, driver_id: str = Depends(resolve_session_key)):
     session = get(driver_id)
     package = session.get("confirmed_package")
     if not package:
@@ -63,7 +63,7 @@ async def submit_event(event: MockEvent, driver_id: str = DRIVER_ID):
 
 
 @router.post("/rebuild/apply", summary="재조립 반영 완료")
-def apply_rebuild(driver_id: str = DRIVER_ID):
+def apply_rebuild(driver_id: str = Depends(resolve_session_key)):
     session = get(driver_id)
     result = session.get("last_rebuild_result")
     if not result or not result.new_package:

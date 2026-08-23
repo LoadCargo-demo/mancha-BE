@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from app.services.mock_data import DRIVER_COST_PROFILE, DRIVER_ID
+from app.services.mock_data import DRIVER_COST_PROFILE
 from app.services.session_store import (
     get,
     get_field_wait_data,
+    resolve_session_key,
     set_value,
     update_field_wait_data,
 )
@@ -30,7 +31,7 @@ def _find_appraised(appraisal, package_id: str):
 
 
 @router.get("/summary", summary="공차 비교, 예측 대비 실제")
-def get_summary(driver_id: str = DRIVER_ID):
+def get_summary(driver_id: str = Depends(resolve_session_key)):
     session = get(driver_id)
     package = session.get("confirmed_package")
     appraisal = session.get("appraisal_result")
@@ -120,5 +121,5 @@ def get_summary(driver_id: str = DRIVER_ID):
 
 
 @router.post("/voice-note", summary="한 줄 남기기")
-def submit_voice_note(note: VoiceNote, driver_id: str = DRIVER_ID):
+def submit_voice_note(note: VoiceNote, driver_id: str = Depends(resolve_session_key)):
     return {"received": True, "text": note.text, "structured": None}
