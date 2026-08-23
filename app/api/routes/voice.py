@@ -14,6 +14,8 @@ from app.core.config import settings
 
 router = APIRouter(prefix="/voice", tags=["voice"])
 
+QUOTA_EXCEEDED_MESSAGE = "음성 서비스 이용량이 초과되었습니다. 운영자에게 문의해주세요."
+
 TTS_ENDPOINT = (
     "https://generativelanguage.googleapis.com/v1alpha/models/{model}:generateContent"
 )
@@ -32,6 +34,7 @@ class TTSRequest(BaseModel):
 
 class TTSResponse(BaseModel):
     audio_base64: str | None  # 실패 시 None — 프론트는 이 경우 TTS만 생략
+    error_message: str | None = None  # 쿼터 초과 등 사용자에게 안내가 필요한 경우만 채워진다
 
 
 @router.post("/tts", response_model=TTSResponse)
@@ -60,6 +63,10 @@ async def text_to_speech(req: TTSRequest) -> TTSResponse:
             data = resp.json()
             audio_b64 = data["candidates"][0]["content"]["parts"][0]["inlineData"]["data"]
             return TTSResponse(audio_base64=audio_b64)
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            return TTSResponse(audio_base64=None, error_message=QUOTA_EXCEEDED_MESSAGE)
+        return TTSResponse(audio_base64=None)
     except (httpx.HTTPError, KeyError, IndexError):
         return TTSResponse(audio_base64=None)
 
@@ -72,6 +79,7 @@ class STTRequest(BaseModel):
 
 class STTResponse(BaseModel):
     text: str | None  # 실패 시 None — 프론트는 "(인식 실패)" 등으로 처리
+    error_message: str | None = None  # 쿼터 초과 등 사용자에게 안내가 필요한 경우만 채워진다
 
 
 @router.post("/stt", response_model=STTResponse)
@@ -102,5 +110,9 @@ async def speech_to_text(req: STTRequest) -> STTResponse:
             data = resp.json()
             text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
             return STTResponse(text=text)
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            return STTResponse(text=None, error_message=QUOTA_EXCEEDED_MESSAGE)
+        return STTResponse(text=None)
     except (httpx.HTTPError, KeyError, IndexError):
         return STTResponse(text=None)

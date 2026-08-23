@@ -39,13 +39,16 @@ def _location_slug(location: str) -> str:
     return "field_" + location.replace(" ", "_")
 
 
-def _estimate_wait_min(package: PackageCandidate) -> tuple[int, list[tuple[str, int]]]:
+def _estimate_wait_min(
+    package: PackageCandidate, field_wait_data: dict[str, dict] | None = None
+) -> tuple[int, list[tuple[str, int]]]:
+    data = field_wait_data if field_wait_data is not None else MOCK_FIELD_WAIT_DATA
     total_wait = 0
     breakdown: list[tuple[str, int]] = []
     for block in package.blocks:
         if block.is_fixed:
             continue
-        field = MOCK_FIELD_WAIT_DATA.get(block.location)
+        field = data.get(block.location)
         if field:
             total_wait += field["avg_wait_min"]
             breakdown.append((block.location, field["avg_wait_min"]))
@@ -118,9 +121,10 @@ def appraise_package(
     cost_profile: DriverCostProfile,
     order_risks: list[OrderRisk],
     order_lookup: dict[str, NormalizedOrder] | None = None,
+    field_wait_data: dict[str, dict] | None = None,
 ) -> AppraisedPackage:
     """실수익 = 명목수익 - 공차비(공차거리×km당원가) - 대기비(대기시간×시간가치)."""
-    wait_min, wait_breakdown = _estimate_wait_min(package)
+    wait_min, wait_breakdown = _estimate_wait_min(package, field_wait_data)
     empty_cost = round(package.empty_km * cost_profile.cost_per_km)
     wait_cost = round((wait_min / 60) * cost_profile.value_per_hour)
     adjusted_profit = package.nominal_profit - empty_cost - wait_cost
@@ -194,12 +198,14 @@ async def run_appraiser(
     cost_profile: DriverCostProfile,
     order_risks: list[OrderRisk],
     order_lookup: dict[str, NormalizedOrder] | None = None,
+    field_wait_data: dict[str, dict] | None = None,
 ) -> AppraisalResult:
     appraised = [
-        appraise_package(p, cost_profile, order_risks, order_lookup) for p in packages
+        appraise_package(p, cost_profile, order_risks, order_lookup, field_wait_data)
+        for p in packages
     ]
 
-    wait_infos = [_estimate_wait_min(ap.package) for ap in appraised]
+    wait_infos = [_estimate_wait_min(ap.package, field_wait_data) for ap in appraised]
     field_impact_levels = await asyncio.gather(
         *[
             _classify_field_impact_level(breakdown, wait_min)

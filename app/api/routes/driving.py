@@ -55,7 +55,7 @@ async def submit_event(event: MockEvent, driver_id: str = DRIVER_ID):
         completed_blocks=completed,
         remaining_blocks=remaining,
         event=received,
-        backup_order_ids=list(backup_pairs.values()),
+        backup_pairs=backup_pairs,
     )
     result = await rebuild(request, DRIVER_CONSTRAINTS, package)
     set_value(driver_id, "last_rebuild_result", result)

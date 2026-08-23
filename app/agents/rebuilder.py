@@ -24,26 +24,27 @@ def _apply_event(
 ) -> list[NormalizedOrder]:
     event = request.event
     orders = [o.model_copy(deep=True) for o in remaining_orders]
-    backup_ids = set(request.backup_order_ids)
+    backup_pairs = request.backup_pairs
 
-    def _swap_in_backups(without_order_id: str) -> None:
+    def _swap_in_backups(without_order_id: str, candidate_backup_ids: set[str]) -> None:
         nonlocal orders
         orders = [o for o in orders if o.order_id != without_order_id]
         backup_orders = [
             o.model_copy(deep=True)
             for o in MOCK_NORMALIZED_ORDERS
-            if o.order_id in backup_ids
+            if o.order_id in candidate_backup_ids
         ]
         orders.extend(
             [o for o in backup_orders if o.order_id not in [x.order_id for x in orders]]
         )
 
     if event.event_type.value == "CANCEL" and event.order_id:
-        _swap_in_backups(event.order_id)
+        _swap_in_backups(event.order_id, set(backup_pairs.values()))
 
     elif event.event_type.value == "DELAY" and event.order_id and event.delay_min:
-        if backup_ids:
-            _swap_in_backups(event.order_id)
+        backup_id = backup_pairs.get(event.order_id)
+        if backup_id:
+            _swap_in_backups(event.order_id, {backup_id})
         else:
             for o in orders:
                 if o.order_id == event.order_id:

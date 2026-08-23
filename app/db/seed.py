@@ -180,7 +180,7 @@ def seed() -> None:
                 completed_blocks=completed,
                 remaining_blocks=remaining,
                 event=event,
-                backup_order_ids=list(risk_result.backup_pairs.values()),
+                backup_pairs=risk_result.backup_pairs,
             )
             result = asyncio.run(
                 rebuild(request, DRIVER_CONSTRAINTS, confirmed_package)

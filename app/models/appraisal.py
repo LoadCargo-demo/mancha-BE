@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.package import PackageCandidate
 
 
 class DriverCostProfile(BaseModel):
-    cost_per_km: int
-    value_per_hour: int
-    min_fare_per_km: int | None = None  # 손익분기
-    daily_min_revenue: int | None = None  # 일 최소 매출
+    cost_per_km: int = Field(gt=0)
+    value_per_hour: int = Field(gt=0)
+    min_fare_per_km: int | None = Field(default=None, gt=0)  # 손익분기
+    daily_min_revenue: int | None = Field(default=None, gt=0)  # 일 최소 매출
 
 
 class DeductionItem(BaseModel):
