@@ -49,7 +49,7 @@ def test_manual_handling_candidate_is_generated_and_annotated():
     assert pkg.excluded_reason is not None
 
 
-def test_manual_handling_candidate_excㅋluded_from_recommendation_but_stays_in_comparison():
+def test_manual_handling_candidate_excluded_from_recommendation_but_stays_in_comparison():
     violating_package = PackageCandidate(
         package_id="pkg_violating",
         label="최대수익형",

@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from app.services.mock_data import DRIVER_COST_PROFILE, DRIVER_ID, MOCK_FIELD_WAIT_DATA
-from app.services.session_store import get, set_value
+from app.services.mock_data import DRIVER_COST_PROFILE
+from app.services.session_store import (
+    get,
+    get_field_wait_data,
+    resolve_session_key,
+    set_value,
+    update_field_wait_data,
+)
 
 router = APIRouter(prefix="/retrospective", tags=["retrospective"])
 
@@ -25,7 +31,7 @@ def _find_appraised(appraisal, package_id: str):
 
 
 @router.get("/summary", summary="공차 비교, 예측 대비 실제")
-def get_summary(driver_id: str = DRIVER_ID):
+def get_summary(driver_id: str = Depends(resolve_session_key)):
     session = get(driver_id)
     package = session.get("confirmed_package")
     appraisal = session.get("appraisal_result")
@@ -52,12 +58,13 @@ def get_summary(driver_id: str = DRIVER_ID):
     actual_wait = predicted_wait
     structural_cause = None
     affected_location = None
+    field_wait_data = get_field_wait_data(driver_id)
 
     if rebuild_result and package:
         for block in package.blocks:
             if block.is_fixed:
                 continue
-            if MOCK_FIELD_WAIT_DATA.get(block.location):
+            if field_wait_data.get(block.location):
                 affected_location = block.location
                 break
 
@@ -81,11 +88,10 @@ def get_summary(driver_id: str = DRIVER_ID):
     )
 
     if affected_location is not None and wait_diff:
-        field = MOCK_FIELD_WAIT_DATA[affected_location]
-        MOCK_FIELD_WAIT_DATA[affected_location] = {
-            "avg_wait_min": actual_wait,
-            "sample_count": field["sample_count"] + 1,
-        }
+        field = field_wait_data[affected_location]
+        update_field_wait_data(
+            driver_id, affected_location, actual_wait, field["sample_count"] + 1
+        )
         prefs = session.get("driver_preferences", {})
         prefs["on_time_return_weight"] = round(
             prefs.get("on_time_return_weight", 1.0) + 0.1, 2
@@ -115,5 +121,5 @@ def get_summary(driver_id: str = DRIVER_ID):
 
 
 @router.post("/voice-note", summary="한 줄 남기기")
-def submit_voice_note(note: VoiceNote, driver_id: str = DRIVER_ID):
+def submit_voice_note(note: VoiceNote, driver_id: str = Depends(resolve_session_key)):
     return {"received": True, "text": note.text, "structured": None}

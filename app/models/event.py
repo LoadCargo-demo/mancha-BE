@@ -20,7 +20,7 @@ class EventType(str, Enum):
 class MockEvent(BaseModel):
     event_type: EventType
     order_id: str | None = None
-    delay_min: int | None = None
+    delay_min: int | None = Field(default=None, ge=0)
     detail: str | None = None
 
 
@@ -30,7 +30,7 @@ class RebuildRequest(BaseModel):
     completed_blocks: list[ScheduleBlock]
     remaining_blocks: list[ScheduleBlock]
     event: MockEvent
-    backup_order_ids: list[str] = Field(default_factory=list)
+    backup_pairs: dict[str, str] = Field(default_factory=dict)  # order_id -> backup_order_id
 
 
 class RebuildDiff(BaseModel):
