@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.agents.qna import answer_question
-from app.services.mock_data import DRIVER_ID
-from app.services.session_store import get
+from app.services.session_store import get, resolve_session_key
 
 router = APIRouter(prefix="/qna", tags=["qna"])
 
@@ -17,7 +16,7 @@ class QuestionRequest(BaseModel):
 
 
 @router.post("/ask", summary="근거 기반 답변 생성 (RAG)")
-async def ask(payload: QuestionRequest, driver_id: str = DRIVER_ID):
+async def ask(payload: QuestionRequest, driver_id: str = Depends(resolve_session_key)):
     session = get(driver_id)
     appraisal = session.get("appraisal_result")
     if not appraisal:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.agents.appraiser import run_appraiser
 from app.agents.builder import build_packages
@@ -15,12 +15,11 @@ from app.models.order import DriverConstraints
 from app.services.mock_data import (
     DRIVER_CONSTRAINTS,
     DRIVER_COST_PROFILE,
-    DRIVER_ID,
     MOCK_NORMALIZED_ORDERS,
     MOCK_TRADE_HISTORY,
 )
 from app.services import session_store
-from app.services.session_store import get, set_value
+from app.services.session_store import get, resolve_session_key, set_value
 
 router = APIRouter(prefix="/pipeline", tags=["pipeline"])
 
@@ -36,7 +35,7 @@ def _require(session: dict, key: str, step_name: str):
 
 # --- 1) Scout ----------------------------------------------------------------
 @router.post("/scout", summary="스카우트 실행 (오더 수집·정규화·기본 필터)")
-def run_scout_step(driver_id: str = DRIVER_ID):
+def run_scout_step(driver_id: str = Depends(resolve_session_key)):
     session = get(driver_id)
     constraints: DriverConstraints = session.get("constraints") or DRIVER_CONSTRAINTS
 
@@ -54,7 +53,7 @@ def run_scout_step(driver_id: str = DRIVER_ID):
 
 # --- 2) Builder ----------------------------------------------------------------
 @router.post("/builder", summary="빌더 실행 (하루 패키지 3안 생성)")
-def run_builder_step(driver_id: str = DRIVER_ID):
+def run_builder_step(driver_id: str = Depends(resolve_session_key)):
     session = get(driver_id)
     scout_result = _require(session, "scout_result", "스카우트")
     constraints: DriverConstraints = session.get("constraints") or DRIVER_CONSTRAINTS
@@ -80,7 +79,7 @@ def run_builder_step(driver_id: str = DRIVER_ID):
 
 # --- 3) Risk Predictor ---------------------------------------------------------
 @router.post("/risk", summary="리스크 예측기 실행 (성사 확률·자동 탈락·백업)")
-async def run_risk_step(driver_id: str = DRIVER_ID):
+async def run_risk_step(driver_id: str = Depends(resolve_session_key)):
     session = get(driver_id)
     _require(session, "scout_result", "스카우트")
 
@@ -92,7 +91,7 @@ async def run_risk_step(driver_id: str = DRIVER_ID):
 
 # --- 4) Appraiser ----------------------------------------------------------------
 @router.post("/appraiser", summary="감정사 실행 (실수익 계산·3안 추천·근거 생성)")
-async def run_appraiser_step(driver_id: str = DRIVER_ID):
+async def run_appraiser_step(driver_id: str = Depends(resolve_session_key)):
     session = get(driver_id)
     builder_result = _require(session, "builder_result", "빌더")
     risk_result = _require(session, "risk_result", "리스크 예측기")
@@ -125,7 +124,7 @@ async def run_appraiser_step(driver_id: str = DRIVER_ID):
 
 
 @router.post("/run-all", summary="Scout→Builder→Risk→Appraiser 순차 실행 (테스트용)")
-async def run_all(driver_id: str = DRIVER_ID):
+async def run_all(driver_id: str = Depends(resolve_session_key)):
     run_scout_step(driver_id)
     run_builder_step(driver_id)
     await run_risk_step(driver_id)
@@ -142,7 +141,7 @@ async def run_all(driver_id: str = DRIVER_ID):
 
 
 @router.get("/status", summary="에이전트 단계별 진행 상황 조회")
-def get_pipeline_status(driver_id: str = DRIVER_ID):
+def get_pipeline_status(driver_id: str = Depends(resolve_session_key)):
     session = get(driver_id)
     return {
         "status": session.get("pipeline_status", "not_started"),

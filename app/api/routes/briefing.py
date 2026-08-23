@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from app.services.mock_data import DRIVER_ID
-from app.services.session_store import get, set_value
+from app.services.session_store import get, resolve_session_key, set_value
 
 router = APIRouter(prefix="/briefing", tags=["briefing"])
 
@@ -21,7 +20,7 @@ def _get_appraisal(driver_id: str):
 
 
 @router.get("/voice", summary="30초 음성 브리핑 텍스트 (TTS 입력용)")
-def get_voice_briefing(driver_id: str = DRIVER_ID):
+def get_voice_briefing(driver_id: str = Depends(resolve_session_key)):
     appraisal = _get_appraisal(driver_id)
     recommended = next(
         (
@@ -40,7 +39,7 @@ def get_voice_briefing(driver_id: str = DRIVER_ID):
 
 
 @router.get("/compare", summary="패키지 3안 비교")
-def compare_packages(driver_id: str = DRIVER_ID):
+def compare_packages(driver_id: str = Depends(resolve_session_key)):
     appraisal = _get_appraisal(driver_id)
     return {
         "packages": appraisal.ranked_packages,
@@ -49,13 +48,13 @@ def compare_packages(driver_id: str = DRIVER_ID):
 
 
 @router.get("/adjustment", summary="보정 내역 (명목 vs 실수익)")
-def get_adjustment_detail(driver_id: str = DRIVER_ID):
+def get_adjustment_detail(driver_id: str = Depends(resolve_session_key)):
     appraisal = _get_appraisal(driver_id)
     return {"packages": appraisal.ranked_packages}
 
 
 @router.post("/confirm", summary="확정 실행 -> 확정된 하루 화면 데이터 반환")
-def confirm_package(package_id: str, driver_id: str = DRIVER_ID):
+def confirm_package(package_id: str, driver_id: str = Depends(resolve_session_key)):
     appraisal = _get_appraisal(driver_id)
     chosen = next(
         (p for p in appraisal.ranked_packages if p.package.package_id == package_id),
