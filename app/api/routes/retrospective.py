@@ -5,8 +5,13 @@ from __future__ import annotations
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.services.mock_data import DRIVER_COST_PROFILE, DRIVER_ID, MOCK_FIELD_WAIT_DATA
-from app.services.session_store import get, set_value
+from app.services.mock_data import DRIVER_COST_PROFILE, DRIVER_ID
+from app.services.session_store import (
+    get,
+    get_field_wait_data,
+    set_value,
+    update_field_wait_data,
+)
 
 router = APIRouter(prefix="/retrospective", tags=["retrospective"])
 
@@ -52,12 +57,13 @@ def get_summary(driver_id: str = DRIVER_ID):
     actual_wait = predicted_wait
     structural_cause = None
     affected_location = None
+    field_wait_data = get_field_wait_data(driver_id)
 
     if rebuild_result and package:
         for block in package.blocks:
             if block.is_fixed:
                 continue
-            if MOCK_FIELD_WAIT_DATA.get(block.location):
+            if field_wait_data.get(block.location):
                 affected_location = block.location
                 break
 
@@ -81,11 +87,10 @@ def get_summary(driver_id: str = DRIVER_ID):
     )
 
     if affected_location is not None and wait_diff:
-        field = MOCK_FIELD_WAIT_DATA[affected_location]
-        MOCK_FIELD_WAIT_DATA[affected_location] = {
-            "avg_wait_min": actual_wait,
-            "sample_count": field["sample_count"] + 1,
-        }
+        field = field_wait_data[affected_location]
+        update_field_wait_data(
+            driver_id, affected_location, actual_wait, field["sample_count"] + 1
+        )
         prefs = session.get("driver_preferences", {})
         prefs["on_time_return_weight"] = round(
             prefs.get("on_time_return_weight", 1.0) + 0.1, 2

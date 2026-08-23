@@ -19,6 +19,7 @@ from app.services.mock_data import (
     MOCK_NORMALIZED_ORDERS,
     MOCK_TRADE_HISTORY,
 )
+from app.services import session_store
 from app.services.session_store import get, set_value
 
 router = APIRouter(prefix="/pipeline", tags=["pipeline"])
@@ -113,7 +114,10 @@ async def run_appraiser_step(driver_id: str = DRIVER_ID):
         )
 
     appraisal = await run_appraiser(
-        valid_packages, cost_profile, risk_result.order_risks
+        valid_packages,
+        cost_profile,
+        risk_result.order_risks,
+        field_wait_data=session_store.get_field_wait_data(driver_id),
     )
     set_value(driver_id, "appraisal_result", appraisal)
     set_value(driver_id, "pipeline_status", "briefing_ready")

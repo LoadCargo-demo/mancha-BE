@@ -79,7 +79,10 @@ async def generate_text(
 async def generate_structured(prompt: str, schema_hint: str) -> dict:
     """schema_hint는 원하는 JSON 형태를 설명하는 문자열."""
     full_prompt = (
-        f"<guardrails>\n{NO_RECALCULATION_RULE}\n</guardrails>\n\n"
+        "<guardrails>\n"
+        f"다음 표현은 사용하지 마세요: {', '.join(BANNED_PHRASES)}.\n"
+        f"{NO_RECALCULATION_RULE}\n"
+        "</guardrails>\n\n"
         f"{prompt}\n\n"
         f"<output_schema>\n{schema_hint}\n</output_schema>\n\n"
         "<final_check>\n"
