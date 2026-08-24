@@ -26,7 +26,7 @@ def test_apply_event_does_not_mutate_global_mock_data():
         event=event,
     )
 
-    updated = _apply_event(_gimhae_order(), request)
+    updated = _apply_event(_gimhae_order(), request, _build_gimhae_package())
 
     assert updated[0].pickup_start != before
     assert _gimhae_order()[0].pickup_start == before

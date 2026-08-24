@@ -118,4 +118,10 @@ MOCK_EVENT_SCENARIOS = {
         "delay_min": 40,
         "detail": "김해 상차 40분 지연",
     },
+    "yangsan_delay_60min": {
+        "event_type": "DELAY",
+        "order_id": "order_yangsan",
+        "delay_min": 60,
+        "detail": "양산 대한부품 상차 60분 지연",
+    },
 }

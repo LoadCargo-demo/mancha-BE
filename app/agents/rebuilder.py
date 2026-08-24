@@ -20,7 +20,9 @@ def _to_plan_summary(package: PackageCandidate) -> PlanSummary:
 
 
 def _apply_event(
-    remaining_orders: list[NormalizedOrder], request: RebuildRequest
+    remaining_orders: list[NormalizedOrder],
+    request: RebuildRequest,
+    old_package: PackageCandidate,
 ) -> list[NormalizedOrder]:
     event = request.event
     orders = [o.model_copy(deep=True) for o in remaining_orders]
@@ -46,14 +48,26 @@ def _apply_event(
         if backup_id:
             _swap_in_backups(event.order_id, {backup_id})
         else:
+            original_pickup_block = next(
+                (
+                    b
+                    for b in old_package.blocks
+                    if b.order_id == event.order_id and b.action == "상차"
+                ),
+                None,
+            )
             for o in orders:
                 if o.order_id == event.order_id:
-                    delayed_start = _to_min(o.pickup_start) + event.delay_min
-                    delayed_end = _to_min(o.pickup_end) + event.delay_min
-                    o.pickup_start = (
-                        f"{delayed_start // 60:02d}:{delayed_start % 60:02d}"
+                    window_width = _to_min(o.pickup_end) - _to_min(o.pickup_start)
+                    baseline_min = (
+                        _to_min(original_pickup_block.arrival_time)
+                        if original_pickup_block is not None
+                        else _to_min(o.pickup_start)
                     )
-                    o.pickup_end = f"{delayed_end // 60:02d}:{delayed_end % 60:02d}"
+                    delayed_start = baseline_min + event.delay_min
+                    delayed_end = delayed_start + window_width
+                    o.pickup_start = _to_hhmm(delayed_start)
+                    o.pickup_end = _to_hhmm(delayed_end)
 
     return orders
 
@@ -77,7 +91,7 @@ async def rebuild(
     untouched_orders = [
         o for o in MOCK_NORMALIZED_ORDERS if o.order_id in untouched_order_ids
     ]
-    updated_candidates = _apply_event(untouched_orders, request)
+    updated_candidates = _apply_event(untouched_orders, request, old_package)
 
     now_time = (
         request.completed_blocks[-1].arrival_time
